@@ -594,7 +594,7 @@ runTests = -> describe 'workers.social.group.index', ->
           context: { group: groupData.slug }
           groupData: groupData
 
-        withConvertedUser options, ({ client, account, group }) ->
+        withConvertedUser options, ({ account, group }) ->
 
           joinOptions =
             username: generateRandomString 8
@@ -602,11 +602,14 @@ runTests = -> describe 'workers.social.group.index', ->
             email: "#{generateRandomString 12}@#{generateRandomString 6}.com"
             slug: groupData.slug
 
-          JGroup.joinUser joinOptions, (err, result) ->
+          generateDummyClient { group: group.slug }, (err, client) ->
             expect(err).to.not.exist
-            expect(result.token).to.exist
 
-            done()
+            JGroup.joinUser client, joinOptions, (err, result) ->
+              expect(err).to.not.exist
+              expect(result.token).to.exist
+
+              done()
 
     describe 'when user is a registered koding user', ->
 
@@ -628,7 +631,7 @@ runTests = -> describe 'workers.social.group.index', ->
             groupData: groupData
 
           # then create our api enabled group
-          withConvertedUser options, ({ group }) ->
+          withConvertedUser options, ({ client, group }) ->
 
             joinOptions =
               username: userFormData.username
@@ -637,7 +640,7 @@ runTests = -> describe 'workers.social.group.index', ->
               slug: group.slug
 
             # then join the initially created user to our new api enabled group
-            JGroup.joinUser joinOptions, (err, result) ->
+            JGroup.joinUser client, joinOptions, (err, result) ->
               expect(err).to.not.exist
               expect(result.token).to.exist
 

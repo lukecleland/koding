@@ -393,15 +393,10 @@ module.exports = class JGroup extends Module
   #
   # @return {ResponseWithToken}
   #
-  @joinUser = (options, callback) ->
+  @joinUser = ->
+  @joinUser = secure (client, options, callback) ->
 
-    koding = require '../../../../../../servers/lib/server/bongo'
     JUser = require '../user'
-    JSession = require '../session'
-
-    context = { group: options.slug }
-    clientId = null
-    client = {}
 
     { username, email, password, slug, alreadyMember } = options
 
@@ -417,51 +412,26 @@ module.exports = class JGroup extends Module
 
     alreadyMember = no
 
-    queue = [
-      (next) ->
-        JSession.fetchSession context, (err, { session }) ->
-          return next err  if err
-
-          clientId = session.clientId
-          next()
-
-      (next) ->
-        koding.fetchClient clientId, context, (client_) ->
-          client = client_
-
-          if client.message
-            console.error JSON.stringify { client }
-            return next { status: 500, message: client.message }
-
-          next()
-
-      (next) ->
-        # check if user exists
-        JUser.normalizeLoginId userData.username, (err, username_) ->
-          return next { status: 500, message: getErrorMessage err }  if err
-
-          JUser.one { username: username_ }, (err, user) ->
-            return next { status: 500, message: getErrorMessage err }  if err
-
-            alreadyMember = user?
-            next()
-    ]
-
-    getErrorMessage = (err) ->
+    getError = (err) ->
       { message } = err
       message = "#{err.message}: #{Object.keys.errors}"  if err.errors?
 
+      return { status: 500, message }
+
     joinGroupCallback = (err, result) ->
-      return callback getErrorMessage err  if err?
+      return callback getError err  if err?
       token = result.replacementToken or result.newToken
       callback null, { token }
 
-    async.series queue, (err) ->
-      return callback getErrorMessage err  if err
+    JUser.normalizeLoginId userData.username, (err, username_) ->
+      return callback getError err  if err
 
-      if alreadyMember
-      then JUser.login client.sessionToken, userData, joinGroupCallback
-      else JUser.convert client, userData, joinGroupCallback
+      JUser.one { username: username_ }, (err, user) ->
+        return callback getError err  if err
+
+        if user?
+        then JUser.login client.sessionToken, userData, joinGroupCallback
+        else JUser.convert client, userData, joinGroupCallback
 
 
   @create = (client, groupData, owner, callback) ->
