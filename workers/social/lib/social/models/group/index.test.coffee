@@ -576,6 +576,74 @@ runTests = -> describe 'workers.social.group.index', ->
               done()
 
 
+  describe 'joinUser()', ->
+
+    describe 'when user is not a registered koding user', ->
+
+      it 'should be able to create a user and join them to group', (done) ->
+
+        groupData =
+          slug: generateRandomString()
+          title: generateRandomString()
+          visibility: 'visible'
+          isApiEnabled: yes
+          allowedDomains : ['*']
+
+        options =
+          createGroup: yes
+          context: { group: groupData.slug }
+          groupData: groupData
+
+        withConvertedUser options, ({ client, account, group }) ->
+
+          joinOptions =
+            username: generateRandomString 8
+            password: generateRandomString()
+            email: "#{generateRandomString 12}@#{generateRandomString 6}.com"
+            slug: groupData.slug
+
+          JGroup.joinUser joinOptions, (err, result) ->
+            expect(err).to.not.exist
+            expect(result.token).to.exist
+
+            done()
+
+    describe 'when user is a registered koding user', ->
+
+      it 'should be able to join them to group', (done) ->
+
+        # first create a user
+        withConvertedUser { createGroup: 'yes' }, ({ userFormData }) ->
+
+          groupData =
+            slug: generateRandomString()
+            title: generateRandomString()
+            visibility: 'visible'
+            isApiEnabled: yes
+            allowedDomains : ['*']
+
+          options =
+            createGroup: yes
+            context: { group: groupData.slug }
+            groupData: groupData
+
+          # then create our api enabled group
+          withConvertedUser options, ({ group }) ->
+
+            joinOptions =
+              username: userFormData.username
+              password: userFormData.password
+              email: userFormData.email
+              slug: group.slug
+
+            # then join the initially created user to our new api enabled group
+            JGroup.joinUser joinOptions, (err, result) ->
+              expect(err).to.not.exist
+              expect(result.token).to.exist
+
+              done()
+
+
 beforeTests()
 
 runTests()

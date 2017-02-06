@@ -108,6 +108,7 @@ module.exports = class JGroup extends Module
           (signature String, Function)
           (signature String, Number, Function)
         ]
+        joinUser: (signature Object, Function)
       instance      :
         join: [
           (signature Function)
@@ -383,6 +384,84 @@ module.exports = class JGroup extends Module
         memberData.email = email
         memberData.username = member.data.profile.nickname
         callback null, memberData
+
+
+  # joinUser
+  #
+  # Joins user with given options to group either by logging in or converting
+  # them.
+  #
+  # @return {ResponseWithToken}
+  #
+  @joinUser = (options, callback) ->
+
+    koding = require '../../../../../../servers/lib/server/bongo'
+    JUser = require '../user'
+    JSession = require '../session'
+
+    context = { group: options.slug }
+    clientId = null
+    client = {}
+
+    { username, email, password, slug, alreadyMember } = options
+
+    userData =
+      username: username
+      email: email
+      password: password
+      passwordConfirm: password
+      agree: 'on'
+      slug: slug
+      # required for JUser.login
+      groupName: slug
+
+    alreadyMember = no
+
+    queue = [
+      (next) ->
+        JSession.fetchSession context, (err, { session }) ->
+          return next err  if err
+
+          clientId = session.clientId
+          next()
+
+      (next) ->
+        koding.fetchClient clientId, context, (client_) ->
+          client = client_
+
+          if client.message
+            console.error JSON.stringify { client }
+            return next { status: 500, message: client.message }
+
+          next()
+
+      (next) ->
+        # check if user exists
+        JUser.normalizeLoginId userData.username, (err, username_) ->
+          return next { status: 500, message: getErrorMessage err }  if err
+
+          JUser.one { username: username_ }, (err, user) ->
+            return next { status: 500, message: getErrorMessage err }  if err
+
+            alreadyMember = user?
+            next()
+    ]
+
+    getErrorMessage = (err) ->
+      { message } = err
+      message = "#{err.message}: #{Object.keys.errors}"  if err.errors?
+
+    joinGroupCallback = (err, result) ->
+      return callback getErrorMessage err  if err?
+      token = result.replacementToken or result.newToken
+      callback null, { token }
+
+    async.series queue, (err) ->
+      return callback getErrorMessage err  if err
+
+      if alreadyMember
+      then JUser.login client.sessionToken, userData, joinGroupCallback
+      else JUser.convert client, userData, joinGroupCallback
 
 
   @create = (client, groupData, owner, callback) ->
