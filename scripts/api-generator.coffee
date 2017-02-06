@@ -76,6 +76,23 @@ swagger =
           type: 'string'
           description: 'Error Code'
           example: 'UnauthorizedRequest'
+    ResponseWithToken:
+      type: 'object'
+      properties:
+        ok:
+          type: 'boolean'
+          description: 'If the request processed by endpoint'
+          example: true
+        error:
+          type: 'Error'
+          description: 'Error description'
+          example:
+            message: 'Something went wrong'
+            name: 'SomethingWentWrong'
+        data:
+          type: 'object'
+          description: 'Result of the operation'
+          example: { token: 'some-uuid-string' }
 
   parameters:
     instanceParam:
