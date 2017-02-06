@@ -289,6 +289,31 @@
         }
       }
     },
+    "ResponseWithToken": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "If the request processed by endpoint",
+          "example": true
+        },
+        "error": {
+          "type": "Error",
+          "description": "Error description",
+          "example": {
+            "message": "Something went wrong",
+            "name": "SomethingWentWrong"
+          }
+        },
+        "data": {
+          "type": "object",
+          "description": "Result of the operation",
+          "example": {
+            "token": "some-uuid-string"
+          }
+        }
+      }
+    },
     "JAccount": {
       "type": "object",
       "properties": {
@@ -6305,6 +6330,35 @@
             "description": "Request processed succesfully",
             "schema": {
               "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized request",
+            "schema": {
+              "$ref": "#/definitions/UnauthorizedRequest"
+            }
+          }
+        }
+      }
+    },
+    "/remote.api/JGroup.joinUser": {
+      "post": {
+        "tags": [
+          "JGroup"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/parameters/bodyParam"
+          }
+        ],
+        "description": "joinUser\n\nJoins user with given options to group either by logging in or converting\nthem.",
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/ResponseWithToken"
             }
           },
           "401": {
