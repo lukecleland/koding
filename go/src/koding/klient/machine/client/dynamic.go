@@ -167,12 +167,13 @@ func (dc *Dynamic) cron() {
 		// Create new client.
 		dc.log.Info("Reinitializing client with %s address: %s", a.Network, a.Value)
 		ctx, cancel := context.WithCancel(context.Background())
+
+		dc.mu.Lock()
 		c := dc.opts.Builder.Build(ctx, a)
 
 		// Update current address.
 		addr = a
 
-		dc.mu.Lock()
 		if dc.cancel != nil {
 			dc.cancel()
 		}
